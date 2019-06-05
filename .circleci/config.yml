@@ -10,16 +10,16 @@ jobs:
           name: Version information
           command: rustc --version && cargo --version && rustup --version
       - run:
-          name: Add rustup components
+          name: Adding rustup components
           command: rustup component add rustfmt
       - run:
-          name: Format source code
+          name: Checking source code format
           command: cargo fmt -- --check
       - restore_cache:
           keys:
             - v1-cargo-cache-{{ checksum "Cargo.lock" }}
       - run:
-          name: Build all targets
+          name: Building all targets
           command: cargo build --all --all-targets
       - save_cache:
           key: v1-cargo-lock-{{ checksum "Cargo.lock" }}
@@ -27,5 +27,5 @@ jobs:
             - "/usr/local/cargo/registry"
             - "target"
       - run:
-          name: Run all tests
+          name: Running all tests
           command: cargo test --all
