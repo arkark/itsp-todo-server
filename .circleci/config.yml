@@ -13,6 +13,9 @@ jobs:
           name: Adding rustup components
           command: rustup component add rustfmt
       - run:
+          name: Installing diesel_cli
+          command: cargo install diesel_cli --no-default-features --features postgres
+      - run:
           name: Checking source code format
           command: cargo fmt -- --check
       - restore_cache:
@@ -26,9 +29,7 @@ jobs:
           paths:
             - "/usr/local/cargo/registry"
             - "target"
-      - run:
-          name: Installing diesel_cli
-          command: cargo install diesel_cli --no-default-features --features postgres
+      - setup_remote_docker
       - run:
           name: Running all tests
           command: cargo test --all

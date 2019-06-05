@@ -1,7 +1,10 @@
 extern crate assert_cmd;
 use assert_cmd::prelude::*;
 
+use std::io;
 use std::process;
+use std::thread;
+use std::time;
 
 fn execute_server() -> process::Child {
     process::Command::cargo_bin("itsp-todo-server")
@@ -10,8 +13,8 @@ fn execute_server() -> process::Child {
         .expect("Failed to execute itsp-todo-server")
 }
 
-fn kill_server(server: &mut process::Child) {
-    server.kill().expect("Failed to kill itsp-todo-server");
+fn kill_server(server: &mut process::Child) -> io::Result<()> {
+    server.kill()
 }
 
 fn execute_docker() -> process::Child {
@@ -22,16 +25,14 @@ fn execute_docker() -> process::Child {
         .expect("Failed to execute `docker-compose up`")
 }
 
-fn kill_docker(docker: &mut process::Child) {
-    docker
-        .kill()
-        .map(|_| {
-            process::Command::new("docker-compose")
-                .arg("down")
-                .output()
-                .expect("Failed to execute `docker-compose down`");
-        })
-        .expect("Failed to kill docker-compose");
+fn kill_docker(docker: &mut process::Child) -> io::Result<process::ExitStatus> {
+    docker.kill().map(|_| {
+        process::Command::new("docker-compose")
+            .arg("down")
+            .output()
+            .expect("Failed to execute `docker-compose down`")
+            .status
+    })
 }
 
 fn init_database() {
@@ -52,10 +53,12 @@ fn f() {
     let mut server = execute_server();
 
     // Sleep for 2 seconds
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    thread::sleep(time::Duration::from_secs(2));
 
     init_database();
 
-    kill_server(&mut server);
-    kill_docker(&mut docker);
+    assert!(kill_server(&mut server).is_ok());
+    assert!(kill_docker(&mut docker)
+        .map(|status| { status.success() })
+        .unwrap_or(false));
 }
