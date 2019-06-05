@@ -1,9 +1,7 @@
 /target
 **/*.rs.bk
 
-/db/*
-!/db/.gitkeep
-
-/tests/db
+/.db
+/tests/.db
 
 .vscode
