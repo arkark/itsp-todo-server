@@ -9,25 +9,26 @@ jobs:
       - run:
           name: Version information
           command: rustc --version && cargo --version && rustup --version
+      - restore_cache:
+          keys:
+            - v1-cargo-lock-{{ arch }}-{{ checksum "Cargo.lock" }}
       - run:
           name: Adding rustup components
           command: rustup component add rustfmt
       - run:
           name: Installing diesel_cli
-          command: cargo install diesel_cli --no-default-features --features postgres
+          command: "cargo install diesel_cli --no-default-features --features postgres || echo \"exit status: $?\""
       - run:
           name: Checking source code format
           command: cargo fmt -- --check
-      - restore_cache:
-          keys:
-            - v1-cargo-lock-{{ checksum "Cargo.lock" }}
       - run:
           name: Building all targets
           command: cargo build --all --all-targets
       - save_cache:
-          key: v1-cargo-lock-{{ checksum "Cargo.lock" }}
+          key: v1-cargo-lock-{{ arch }}-{{ checksum "Cargo.lock" }}
           paths:
-            - "/usr/local/cargo/registry"
+            - "/usr/local/cargo/registory"
+            - "/usr/local/cargo/bin/diesel"
             - "target"
       - setup_remote_docker
       - run:
