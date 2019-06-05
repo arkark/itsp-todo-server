@@ -4,7 +4,7 @@ use actix::prelude::{Actor, Handler, Message, SyncContext};
 use actix_web::{error, Error};
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PoolError, PooledConnection};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, FixedOffset};
 
 use crate::model::{Task, NewTask};
 
@@ -49,9 +49,8 @@ impl Handler<AllTasks> for DbExecutor {
     }
 }
 
-#[derive(Deserialize)]
 pub struct InsertTask {
-    pub deadline: DateTime<Local>,
+    pub deadline: DateTime<FixedOffset>,
     pub title: String,
     pub memo: String
 }

@@ -4,7 +4,8 @@ use actix_web::{
     FutureResponse, AsyncResponder,
     Path, Json
 };
-use futures::Future;
+use futures::{future, Future};
+use chrono::DateTime;
 
 use crate::db::{DbExecutor, AllTasks, InsertTask, SearchTask};
 use crate::model::Task;
@@ -42,27 +43,44 @@ pub mod post_task_response {
     }
 }
 
+#[derive(Deserialize)]
+pub struct PostTaskRequest {
+    pub deadline: String,
+    pub title: String,
+    pub memo: String
+}
+
 pub fn post_task(
     request: HttpRequest<AppState>,
-    task: Json<InsertTask>
+    task: Json<PostTaskRequest>
 ) -> FutureResponse<HttpResponse> {
-    request.state()
-        .db
-        .send(task.into_inner())
-        .from_err()
-        .and_then(move |res| match res {
-            Ok(id) => Ok(
-                HttpResponse::Ok().json(
-                    post_task_response::Success { id }
-                )
-            ),
-            Err(_) => Ok(
+    match DateTime::parse_from_rfc3339(&task.deadline) {
+        Ok(deadline) => {
+            request.state()
+                .db
+                .send(InsertTask {
+                    deadline: deadline,
+                    title: task.title.clone(),
+                    memo: task.memo.clone()
+                })
+                .from_err()
+                .and_then(|res| match res {
+                    Ok(id) => Ok(
+                        HttpResponse::Ok().json(
+                            post_task_response::Success { id }
+                        )
+                    ),
+                    Err(e) => Err(e)
+                }).responder()
+        }
+        Err(_) => {
+            future::lazy(|| Ok(
                 HttpResponse::BadRequest().json(
                     post_task_response::Failure
                 )
-            )
-        })
-        .responder()
+            )).responder()
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -77,13 +95,13 @@ pub fn get_all_tasks(
         .db
         .send(AllTasks)
         .from_err()
-        .and_then(move |res| match res {
+        .and_then(|res| match res {
             Ok(tasks) => Ok(
                 HttpResponse::Ok().json(
                     AllTasksResponse { events: tasks }
                 )
             ),
-            Err(e) => Err(e) // InternalServerError
+            Err(e) => Err(e)
         })
         .responder()
 }
@@ -95,7 +113,7 @@ pub fn get_task(
         .db
         .send(params.into_inner())
         .from_err()
-        .and_then(move |res| match res {
+        .and_then(|res| match res {
             Ok(task) => Ok(
                 HttpResponse::Ok().json(task)
             ),
