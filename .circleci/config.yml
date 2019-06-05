@@ -17,7 +17,7 @@ jobs:
           command: cargo fmt -- --check
       - restore_cache:
           keys:
-            - v1-cargo-cache-{{ checksum "Cargo.lock" }}
+            - v1-cargo-lock-{{ checksum "Cargo.lock" }}
       - run:
           name: Building all targets
           command: cargo build --all --all-targets
