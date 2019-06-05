@@ -4,4 +4,6 @@
 /db/*
 !/db/.gitkeep
 
+/tests/db
+
 .vscode

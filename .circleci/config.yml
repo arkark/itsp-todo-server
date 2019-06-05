@@ -27,5 +27,8 @@ jobs:
             - "/usr/local/cargo/registry"
             - "target"
       - run:
+          name: Installing diesel_cli
+          command: cargo install diesel_cli --no-default-features --features postgres
+      - run:
           name: Running all tests
           command: cargo test --all

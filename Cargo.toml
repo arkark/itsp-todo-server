@@ -22,3 +22,6 @@ features = ["serde"]
 [dependencies.diesel]
 version = "1.4"
 features = ["postgres", "chrono", "r2d2"]
+
+[dev-dependencies]
+assert_cmd = "0.11"
