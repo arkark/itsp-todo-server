@@ -1,24 +1,20 @@
 use actix::prelude::Addr;
-use actix_web::{
-    HttpRequest, HttpResponse,
-    FutureResponse, AsyncResponder,
-    Path, Json
-};
-use futures::{future, Future};
+use actix_web::{AsyncResponder, FutureResponse, HttpRequest, HttpResponse, Json, Path};
 use chrono::DateTime;
+use futures::{future, Future};
 
-use crate::db::{DbExecutor, AllTasks, InsertTask, SearchTask};
+use crate::db::{AllTasks, DbExecutor, InsertTask, SearchTask};
 use crate::model::Task;
 
 pub struct AppState {
-    pub db: Addr<DbExecutor>
+    pub db: Addr<DbExecutor>,
 }
 
 pub mod post_task_response {
-    use serde::ser::{Serialize, Serializer, SerializeStruct};
+    use serde::ser::{Serialize, SerializeStruct, Serializer};
 
     pub struct Success {
-        pub id: i64
+        pub id: i64,
     }
 
     impl Serialize for Success {
@@ -47,79 +43,62 @@ pub mod post_task_response {
 pub struct PostTaskRequest {
     pub deadline: String,
     pub title: String,
-    pub memo: String
+    pub memo: String,
 }
 
 pub fn post_task(
     request: HttpRequest<AppState>,
-    task: Json<PostTaskRequest>
+    task: Json<PostTaskRequest>,
 ) -> FutureResponse<HttpResponse> {
     match DateTime::parse_from_rfc3339(&task.deadline) {
-        Ok(deadline) => {
-            request.state()
-                .db
-                .send(InsertTask {
-                    deadline: deadline,
-                    title: task.title.clone(),
-                    memo: task.memo.clone()
-                })
-                .from_err()
-                .and_then(|res| match res {
-                    Ok(id) => Ok(
-                        HttpResponse::Ok().json(
-                            post_task_response::Success { id }
-                        )
-                    ),
-                    Err(e) => Err(e)
-                }).responder()
-        }
-        Err(_) => {
-            future::lazy(|| Ok(
-                HttpResponse::BadRequest().json(
-                    post_task_response::Failure
-                )
-            )).responder()
-        }
+        Ok(deadline) => request
+            .state()
+            .db
+            .send(InsertTask {
+                deadline: deadline,
+                title: task.title.clone(),
+                memo: task.memo.clone(),
+            })
+            .from_err()
+            .and_then(|res| match res {
+                Ok(id) => Ok(HttpResponse::Ok().json(post_task_response::Success { id })),
+                Err(e) => Err(e),
+            })
+            .responder(),
+        Err(_) => future::lazy(|| Ok(HttpResponse::BadRequest().json(post_task_response::Failure)))
+            .responder(),
     }
 }
 
 #[derive(Serialize)]
 pub struct AllTasksResponse {
-    events: Vec<Task>
+    events: Vec<Task>,
 }
 
-pub fn get_all_tasks(
-    request: HttpRequest<AppState>
-) -> FutureResponse<HttpResponse> {
-    request.state()
+pub fn get_all_tasks(request: HttpRequest<AppState>) -> FutureResponse<HttpResponse> {
+    request
+        .state()
         .db
         .send(AllTasks)
         .from_err()
         .and_then(|res| match res {
-            Ok(tasks) => Ok(
-                HttpResponse::Ok().json(
-                    AllTasksResponse { events: tasks }
-                )
-            ),
-            Err(e) => Err(e)
+            Ok(tasks) => Ok(HttpResponse::Ok().json(AllTasksResponse { events: tasks })),
+            Err(e) => Err(e),
         })
         .responder()
 }
 
 pub fn get_task(
-    (request, params): (HttpRequest<AppState>, Path<SearchTask>)
+    (request, params): (HttpRequest<AppState>, Path<SearchTask>),
 ) -> FutureResponse<HttpResponse> {
-    request.state()
+    request
+        .state()
         .db
         .send(params.into_inner())
         .from_err()
         .and_then(|res| match res {
-            Ok(task) => Ok(
-                HttpResponse::Ok().json(task)
-            ),
-            Err(_) => Ok(
-                HttpResponse::NotFound().finish()
-            )
+            Ok(task) => Ok(HttpResponse::Ok().json(task)),
+            Err(_) => Ok(HttpResponse::NotFound().finish()),
         })
         .responder()
 }

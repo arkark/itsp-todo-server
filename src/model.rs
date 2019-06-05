@@ -1,19 +1,16 @@
-use diesel::prelude::*;
+use chrono::{DateTime, Local, NaiveDateTime, TimeZone};
 use diesel::pg::PgConnection;
-use chrono::{DateTime, Local, TimeZone, NaiveDateTime};
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use diesel::prelude::*;
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-use crate::schema::{
-    tasks,
-    tasks::dsl
-};
+use crate::schema::{tasks, tasks::dsl};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tasks"]
 pub struct NewTask {
     pub deadline: NaiveDateTime,
     pub title: String,
-    pub memo: String
+    pub memo: String,
 }
 
 #[derive(Debug, Queryable)]
@@ -21,12 +18,13 @@ pub struct Task {
     pub id: i64,
     pub deadline: NaiveDateTime,
     pub title: String,
-    pub memo: String
+    pub memo: String,
 }
 
 impl Serialize for Task {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let deadline: DateTime<Local> = Local.from_local_datetime(&self.deadline)
+        let deadline: DateTime<Local> = Local
+            .from_local_datetime(&self.deadline)
             .single()
             .expect("Unexpected datetime format");
         let mut s = serializer.serialize_struct("Task", 4)?;
@@ -51,7 +49,6 @@ impl Task {
     }
 
     pub fn search(id: i64, connection: &PgConnection) -> QueryResult<Task> {
-        dsl::tasks.find(id)
-            .get_result(connection)
+        dsl::tasks.find(id).get_result(connection)
     }
 }

@@ -2,11 +2,11 @@ use std::ops::Deref;
 
 use actix::prelude::{Actor, Handler, Message, SyncContext};
 use actix_web::{error, Error};
+use chrono::{DateTime, FixedOffset};
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PoolError, PooledConnection};
-use chrono::{DateTime, FixedOffset};
 
-use crate::model::{Task, NewTask};
+use crate::model::{NewTask, Task};
 
 type PgPool = Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -17,14 +17,14 @@ pub fn init_pool(database_url: &str) -> Result<PgPool, PoolError> {
 }
 
 pub struct DbExecutor {
-    pub pool: PgPool
+    pub pool: PgPool,
 }
 
 impl DbExecutor {
     pub fn get_connection(&self) -> Result<PgPooledConnection, Error> {
-        self.pool.get().map_err(
-            |e| error::ErrorInternalServerError(e)
-        )
+        self.pool
+            .get()
+            .map_err(|e| error::ErrorInternalServerError(e))
     }
 }
 
@@ -43,16 +43,14 @@ impl Handler<AllTasks> for DbExecutor {
 
     fn handle(&mut self, _: AllTasks, _: &mut Self::Context) -> Self::Result {
         Task::all(self.get_connection()?.deref())
-            .map_err(
-                |_| error::ErrorInternalServerError("Failed to get all tasks")
-            )
+            .map_err(|_| error::ErrorInternalServerError("Failed to get all tasks"))
     }
 }
 
 pub struct InsertTask {
     pub deadline: DateTime<FixedOffset>,
     pub title: String,
-    pub memo: String
+    pub memo: String,
 }
 
 impl Message for InsertTask {
@@ -66,18 +64,16 @@ impl Handler<InsertTask> for DbExecutor {
         let new_task = NewTask {
             deadline: insert_task.deadline.naive_local(),
             title: insert_task.title,
-            memo: insert_task.memo
+            memo: insert_task.memo,
         };
         Task::insert(&new_task, self.get_connection()?.deref())
-            .map_err(
-                |_| error::ErrorInternalServerError("Failed to insert a task")
-            )
+            .map_err(|_| error::ErrorInternalServerError("Failed to insert a task"))
     }
 }
 
 #[derive(Deserialize)]
 pub struct SearchTask {
-    pub id: i64
+    pub id: i64,
 }
 
 impl Message for SearchTask {
@@ -89,8 +85,6 @@ impl Handler<SearchTask> for DbExecutor {
 
     fn handle(&mut self, search_task: SearchTask, _: &mut Self::Context) -> Self::Result {
         Task::search(search_task.id, self.get_connection()?.deref())
-            .map_err(
-                |_| error::ErrorInternalServerError("Failed to search a task")
-            )
+            .map_err(|_| error::ErrorInternalServerError("Failed to search a task"))
     }
 }

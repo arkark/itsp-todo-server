@@ -1,27 +1,26 @@
 extern crate actix;
 extern crate actix_web;
+extern crate dotenv;
 extern crate env_logger;
 extern crate futures;
-extern crate dotenv;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
 use actix::SyncArbiter;
-use actix_web::{http, server, App};
 use actix_web::middleware::Logger;
+use actix_web::{http, server, App};
 use log::debug;
 
 mod api;
-mod schema;
-mod model;
 mod db;
+mod model;
+mod schema;
 
 const NUM_DB_THREADS: usize = 3;
 
 fn main() {
-
     std::env::set_var("RUST_LOG", "itsp_todo_server=debug,actix_web=info");
     env_logger::init();
 
@@ -29,23 +28,16 @@ fn main() {
 
     let system = actix::System::new("itsp-todo-app");
 
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL not found");
-    let pool = db::init_pool(&database_url)
-        .expect("Failed to create a pool");
-    let addr = SyncArbiter::start(
-        NUM_DB_THREADS,
-        move || db::DbExecutor {
-            pool: pool.clone()
-        }
-    );
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not found");
+    let pool = db::init_pool(&database_url).expect("Failed to create a pool");
+    let addr = SyncArbiter::start(NUM_DB_THREADS, move || db::DbExecutor {
+        pool: pool.clone(),
+    });
 
     let app = move || {
         debug!("Constructing the app");
 
-        let state = api::AppState {
-            db: addr.clone()
-        };
+        let state = api::AppState { db: addr.clone() };
 
         App::with_state(state)
             .middleware(Logger::default())
