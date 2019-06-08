@@ -32,7 +32,7 @@ pub mod post_task_response {
     impl Serialize for Failure {
         fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
             let mut s = serializer.serialize_struct("Failure", 2)?;
-            s.serialize_field("status", "success")?;
+            s.serialize_field("status", "failure")?;
             s.serialize_field("message", "invalid date format")?;
             s.end()
         }
