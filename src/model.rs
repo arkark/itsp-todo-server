@@ -23,10 +23,7 @@ pub struct Task {
 
 impl Serialize for Task {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let deadline: DateTime<Local> = Local
-            .from_local_datetime(&self.deadline)
-            .single()
-            .expect("Unexpected datetime format");
+        let deadline: DateTime<Local> = Local.from_utc_datetime(&self.deadline);
         let mut s = serializer.serialize_struct("Task", 4)?;
         s.serialize_field("id", &self.id)?;
         s.serialize_field("deadline", &deadline)?;

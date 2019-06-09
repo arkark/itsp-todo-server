@@ -15,12 +15,26 @@ use std::time;
 const SERVER_PORT: &str = "8888";
 
 pub mod todo_response {
-    #[derive(Deserialize, Debug, PartialEq)]
+    #[derive(Deserialize, Debug)]
     pub struct GetTask {
         pub id: i64,
         pub deadline: String,
         pub title: String,
         pub memo: String,
+    }
+
+    impl PartialEq for GetTask {
+        fn eq(&self, other: &Self) -> bool {
+            use chrono::DateTime;
+            let date1 =
+                DateTime::parse_from_rfc3339(&self.deadline).expect("Failed to parse deadline");
+            let date2 =
+                DateTime::parse_from_rfc3339(&other.deadline).expect("Failed to parse deadline");
+            self.id == other.id
+                && self.title == other.title
+                && self.memo == other.memo
+                && date1 == date2
+        }
     }
 
     pub mod post_task {

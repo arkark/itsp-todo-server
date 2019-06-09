@@ -62,7 +62,7 @@ impl Handler<InsertTask> for DbExecutor {
 
     fn handle(&mut self, insert_task: InsertTask, _: &mut Self::Context) -> Self::Result {
         let new_task = NewTask {
-            deadline: insert_task.deadline.naive_local(),
+            deadline: insert_task.deadline.naive_utc(),
             title: insert_task.title,
             memo: insert_task.memo,
         };
