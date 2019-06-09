@@ -3,7 +3,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/rust
+      - image: circleci/rust:latest
+      - image: circleci/postgres:latest
+        environment:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: itsp-todo-app
     steps:
       - checkout
       - run:
@@ -19,6 +24,11 @@ jobs:
           name: Installing diesel_cli
           command: "cargo install diesel_cli --no-default-features --features postgres || echo \"exit status: $?\""
       - run:
+          name: Installing dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.6.1
+      - run:
           name: Checking source code format
           command: cargo fmt -- --check
       - run:
@@ -30,10 +40,12 @@ jobs:
             - "/usr/local/cargo/registory"
             - "/usr/local/cargo/bin/diesel"
             - "target"
-      - setup_remote_docker
       - run:
-          name: Pulling Docker image
-          command: docker pull postgres:11.3
+          name: Waiting for DB
+          command: dockerize -wait tcp://127.0.0.1:5432 -timeout 60s
+      - run:
+          name: Running diesel
+          command: diesel setup
       - run:
           name: Running all tests
-          command: cargo test --all
+          command: RUST_BACKTRACE=1 cargo test --all

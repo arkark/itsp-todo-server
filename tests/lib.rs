@@ -8,7 +8,6 @@ extern crate maplit;
 use assert_cmd::prelude::*;
 use reqwest::{header, StatusCode};
 
-use std::io;
 use std::process;
 use std::thread;
 use std::time;
@@ -50,70 +49,17 @@ fn execute_server() -> process::Child {
         .unwrap()
         .env(
             "DATABASE_URL",
-            "postgresql://username:password@localhost:5432/itsp-todo-app",
+            "postgresql://user:password@localhost:5432/itsp-todo-app",
         )
         .env("SERVER_PORT", SERVER_PORT)
         .spawn()
         .expect("Failed to execute itsp-todo-server")
 }
 
-fn kill_server(server: &mut process::Child) -> io::Result<()> {
-    server.kill()
-}
-
-fn execute_docker() -> process::Child {
-    process::Command::new("docker-compose")
-        .current_dir("./tests")
-        .arg("up")
-        .spawn()
-        .expect("Failed to execute `docker-compose up`")
-}
-
-fn kill_docker(docker: &mut process::Child) -> io::Result<process::ExitStatus> {
-    docker.kill().map(|_| {
-        process::Command::new("docker-compose")
-            .current_dir("./tests")
-            .arg("down")
-            .output()
-            .expect("Failed to execute `docker-compose down`")
-            .status
-    })
-}
-
-fn init_database() {
-    process::Command::new("diesel")
-        .arg("setup")
-        .output()
-        .expect("Failed to execute `diesel setup`");
-    process::Command::new("diesel")
-        .arg("migration")
-        .arg("redo")
-        .output()
-        .expect("Failed to execute `diesel migration redo`");
-}
-
-fn initialize() -> (process::Child, process::Child) {
-    let docker = execute_docker();
-    let server = execute_server();
-    thread::sleep(time::Duration::from_secs(5));
-    init_database();
-
-    // Sleep for 5 seconds
-    thread::sleep(time::Duration::from_secs(5));
-
-    (server, docker)
-}
-
-fn terminate(server: &mut process::Child, docker: &mut process::Child) {
-    assert!(kill_server(server).is_ok());
-    assert!(kill_docker(docker)
-        .map(|status| { status.success() })
-        .unwrap_or(false));
-}
-
 #[test]
 fn server_api() -> Result<(), reqwest::Error> {
-    let (mut server, mut docker) = initialize();
+    let mut server = execute_server();
+    thread::sleep(time::Duration::from_secs(5));
 
     let base_url = format!("http://localhost:{}", SERVER_PORT);
     let client = reqwest::Client::new();
@@ -225,6 +171,6 @@ fn server_api() -> Result<(), reqwest::Error> {
     let body: todo_response::GetAllTask = response.json()?;
     assert_eq!(body.events, vec![task1, task2]);
 
-    terminate(&mut server, &mut docker);
+    assert!(server.kill().is_ok());
     Ok(())
 }
