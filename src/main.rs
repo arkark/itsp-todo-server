@@ -8,17 +8,16 @@ extern crate serde_derive;
 #[macro_use]
 extern crate diesel;
 
-use actix::SyncArbiter;
-use actix_web::middleware::Logger;
-use actix_web::{http, server, App};
+use actix_web::server;
 use log::debug;
 
 mod api;
+mod app;
 mod db;
 mod model;
 mod schema;
 
-const NUM_DB_THREADS: usize = 3;
+const DB_THREAD_NUM: usize = 3;
 
 fn main() {
     std::env::set_var("RUST_LOG", "itsp_todo_server=debug,actix_web=info");
@@ -28,27 +27,12 @@ fn main() {
 
     let system = actix::System::new("itsp-todo-app");
 
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL not found");
-    let pool = db::init_pool(&database_url).expect("Failed to create a pool");
-    let addr = SyncArbiter::start(NUM_DB_THREADS, move || db::DbExecutor {
-        pool: pool.clone(),
-    });
-
-    let app = move || {
-        debug!("Constructing the app");
-
-        let state = api::AppState { db: addr.clone() };
-
-        App::with_state(state)
-            .middleware(Logger::default())
-            .route("/api/v1/event", http::Method::POST, api::post_task)
-            .route("/api/v1/event", http::Method::GET, api::get_all_tasks)
-            .route("/api/v1/event/{id}", http::Method::GET, api::get_task)
-    };
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not found");
+    let addr = app::build_addr(&db_url, DB_THREAD_NUM);
 
     debug!("Starting the server");
-    let port = 8080;
-    server::new(app)
+    let port = std::env::var("SERVER_PORT").expect("SERVER_PORT is not found");
+    server::new(move || app::build_app(&addr))
         .bind(format!("localhost:{}", port))
         .expect(&format!("Cannot bind to port {}", port))
         .start();
