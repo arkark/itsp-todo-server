@@ -2,6 +2,5 @@
 **/*.rs.bk
 
 /.db
-/tests/.db
 
 .vscode

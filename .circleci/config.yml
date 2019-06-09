@@ -44,7 +44,7 @@ jobs:
           name: Waiting for DB
           command: dockerize -wait tcp://127.0.0.1:5432 -timeout 60s
       - run:
-          name: Running diesel
+          name: DB setup
           command: diesel setup
       - run:
           name: Running all tests
