@@ -32,5 +32,8 @@ jobs:
             - "target"
       - setup_remote_docker
       - run:
+          name: Pulling Docker image
+          command: docker pull postgres:11.3
+      - run:
           name: Running all tests
           command: cargo test --all
