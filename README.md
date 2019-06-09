@@ -45,8 +45,10 @@ This is homework for [ITSP](http://www.itpro.titech.ac.jp/) (1Q).
 ```sh
 # Install diesel
 $ cargo install diesel_cli --no-default-features --features postgres
+
 # Create and start a DB container
 $ docker-compose up -d
+
 # Setup the DB
 $ diesel setup
 ```
