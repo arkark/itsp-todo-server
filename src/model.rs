@@ -48,4 +48,8 @@ impl Task {
     pub fn search(id: i64, connection: &PgConnection) -> QueryResult<Task> {
         dsl::tasks.find(id).get_result(connection)
     }
+
+    pub fn delete(id: i64, connection: &PgConnection) -> QueryResult<Task> {
+        diesel::delete(dsl::tasks.filter(dsl::id.eq(id))).get_result(connection)
+    }
 }

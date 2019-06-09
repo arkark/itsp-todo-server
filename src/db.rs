@@ -88,3 +88,21 @@ impl Handler<SearchTask> for DbExecutor {
             .map_err(|_| error::ErrorInternalServerError("Failed to search a task"))
     }
 }
+
+#[derive(Deserialize)]
+pub struct DeleteTask {
+    pub id: i64,
+}
+
+impl Message for DeleteTask {
+    type Result = Result<Task, Error>;
+}
+
+impl Handler<DeleteTask> for DbExecutor {
+    type Result = Result<Task, Error>;
+
+    fn handle(&mut self, delete_task: DeleteTask, _: &mut Self::Context) -> Self::Result {
+        Task::delete(delete_task.id, self.get_connection()?.deref())
+            .map_err(|_| error::ErrorInternalServerError("Failed to delete a task"))
+    }
+}

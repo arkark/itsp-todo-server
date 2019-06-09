@@ -23,4 +23,5 @@ pub fn build_app(addr: &Addr<db::DbExecutor>) -> App<api::AppState> {
         .route("/api/v1/event", http::Method::POST, api::post_task)
         .route("/api/v1/event", http::Method::GET, api::get_all_tasks)
         .route("/api/v1/event/{id}", http::Method::GET, api::get_task)
+        .route("/api/v1/event/{id}", http::Method::DELETE, api::delete_task)
 }

@@ -3,7 +3,7 @@ use actix_web::{AsyncResponder, FutureResponse, HttpRequest, HttpResponse, Json,
 use chrono::DateTime;
 use futures::{future, Future};
 
-use crate::db::{AllTasks, DbExecutor, InsertTask, SearchTask};
+use crate::db::{AllTasks, DbExecutor, DeleteTask, InsertTask, SearchTask};
 use crate::model::Task;
 
 pub struct AppState {
@@ -90,6 +90,21 @@ pub fn get_all_tasks(request: HttpRequest<AppState>) -> FutureResponse<HttpRespo
 
 pub fn get_task(
     (request, params): (HttpRequest<AppState>, Path<SearchTask>),
+) -> FutureResponse<HttpResponse> {
+    request
+        .state()
+        .db
+        .send(params.into_inner())
+        .from_err()
+        .and_then(|res| match res {
+            Ok(task) => Ok(HttpResponse::Ok().json(task)),
+            Err(_) => Ok(HttpResponse::NotFound().finish()),
+        })
+        .responder()
+}
+
+pub fn delete_task(
+    (request, params): (HttpRequest<AppState>, Path<DeleteTask>),
 ) -> FutureResponse<HttpResponse> {
     request
         .state()
