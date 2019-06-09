@@ -16,14 +16,14 @@ const SERVER_PORT: &str = "8888";
 
 pub mod todo_response {
     #[derive(Deserialize, Debug)]
-    pub struct GetTask {
+    pub struct Task {
         pub id: i64,
         pub deadline: String,
         pub title: String,
         pub memo: String,
     }
 
-    impl PartialEq for GetTask {
+    impl PartialEq for Task {
         fn eq(&self, other: &Self) -> bool {
             use chrono::DateTime;
             let date1 =
@@ -36,6 +36,9 @@ pub mod todo_response {
                 && date1 == date2
         }
     }
+
+    pub type GetTask = Task;
+    pub type DeleteTask = Task;
 
     pub mod post_task {
         #[derive(Deserialize, Debug)]
@@ -54,7 +57,7 @@ pub mod todo_response {
 
     #[derive(Deserialize, Debug)]
     pub struct GetAllTask {
-        pub events: Vec<GetTask>,
+        pub events: Vec<Task>,
     }
 }
 
@@ -97,7 +100,7 @@ fn server_api() -> Result<(), reqwest::Error> {
     let headers = response.headers();
     assert_eq!(headers[header::CONTENT_TYPE], "application/json");
     let body: todo_response::GetAllTask = response.json()?;
-    assert_eq!(body.events, vec![]);
+    assert!(body.events.is_empty());
 
     // post a valid task
     let mut response = client
@@ -183,7 +186,34 @@ fn server_api() -> Result<(), reqwest::Error> {
     let headers = response.headers();
     assert_eq!(headers[header::CONTENT_TYPE], "application/json");
     let body: todo_response::GetAllTask = response.json()?;
-    assert_eq!(body.events, vec![task1, task2]);
+    assert_eq!(body.events.len(), 2);
+    assert_eq!(body.events[0], task1);
+    assert_eq!(body.events[1], task2);
+
+    // delete task 1
+    let mut response = client
+        .delete(&format!("{}/api/v1/event/1", base_url))
+        .send()?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let headers = response.headers();
+    assert_eq!(headers[header::CONTENT_TYPE], "application/json");
+    let body: todo_response::DeleteTask = response.json()?;
+    assert_eq!(body, task1);
+
+    // delete task 1, but not found
+    let response = client
+        .delete(&format!("{}/api/v1/event/1", base_url))
+        .send()?;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // get all tasks
+    let mut response = client.get(&format!("{}/api/v1/event", base_url)).send()?;
+    assert_eq!(response.status(), StatusCode::OK);
+    let headers = response.headers();
+    assert_eq!(headers[header::CONTENT_TYPE], "application/json");
+    let body: todo_response::GetAllTask = response.json()?;
+    assert_eq!(body.events.len(), 1);
+    assert_eq!(body.events[0], task2);
 
     assert!(server.kill().is_ok());
     Ok(())
