@@ -24,6 +24,14 @@ This is homework for [ITSP](http://www.itpro.titech.ac.jp/) (1Q).
 -  [:octopus: docker-compose](https://github.com/docker/compose)
 -  [:minidisc: CircleCI](https://circleci.com/)
 
+### 構成
+
+- 言語はRustを使い、フレームワークとして非同期IOに対応したactix-webを使用
+- DBMSはPostgreSQLを用い、dockerコンテナを立ち上げて使用
+- docker-composeを使用してup/downを手軽に
+- アプリケーションとDBとの接続にDieselを使用
+- CI環境としてCircleCIを使用。cacheを活用するなどして高速化
+
 ## Usage
 
 ### Prerequisites
